@@ -21,8 +21,162 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 
 @Composable
+fun PlantDetailContent(plant: Plant) {
+    Surface {
+        Column(Modifier.padding(dimensionResource(R.dimen.margin_normal))) {
+            PlantName(plant.name)
+            PlantWatering(plant.wateringInterval)
+        }
+    }
+}
+
+
+@Composable
 fun PlantDetailDescription() {
     Surface {
         Text("Hello Compose")
+    }
+}
+
+@Composable
+fun PlantDetailDescription(plantDetailViewModel: PlantDetailViewModel) {
+    // Observes values coming from the VM's LiveData<Plant> field
+    val plant by plantDetailViewModel.plant.observeAsState()
+
+    // If plant is not null, display the content
+    plant?.let {
+        PlantDetailContent(it)
+    }
+}
+
+@Composable
+fun PlantDetailContent(plant: Plant) {
+    PlantName(plant.name)
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun PlantWatering(wateringInterval: Int) {
+    Column(Modifier.fillMaxWidth()) {
+        // Same modifier used by both Texts
+        val centerWithPaddingModifier = Modifier
+            .padding(horizontal = dimensionResource(R.dimen.margin_small))
+            .align(Alignment.CenterHorizontally)
+
+        val normalPadding = dimensionResource(R.dimen.margin_normal)
+
+        Text(
+            text = stringResource(R.string.watering_needs_prefix),
+            color = MaterialTheme.colors.primaryVariant,
+            fontWeight = FontWeight.Bold,
+            modifier = centerWithPaddingModifier.padding(top = normalPadding)
+        )
+
+        val wateringIntervalText = pluralStringResource(
+            R.plurals.watering_needs_suffix, wateringInterval, wateringInterval
+        )
+        Text(
+            text = wateringIntervalText,
+            modifier = centerWithPaddingModifier.padding(bottom = normalPadding)
+        )
+    }
+}
+
+@Composable
+private fun PlantName(name: String) {
+    Text(
+        text = name,
+        style = MaterialTheme.typography.h5,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = dimensionResource(R.dimen.margin_small))
+            .wrapContentWidth(Alignment.CenterHorizontally)
+    )
+}
+
+@Composable
+private fun PlantDescription(description: String) {
+    // Remembers the HTML formatted description. Re-executes on a new description
+    val htmlDescription = remember(description) {
+        HtmlCompat.fromHtml(description, HtmlCompat.FROM_HTML_MODE_COMPACT)
+    }
+
+    // Displays the TextView on the screen and updates with the HTML description when inflated
+    // Updates to htmlDescription will make AndroidView recompose and update the text
+    AndroidView(
+        factory = { context ->
+            TextView(context).apply {
+                movementMethod = LinkMovementMethod.getInstance()
+            }
+        },
+        update = {
+            it.text = htmlDescription
+        }
+    )
+}
+
+@Composable
+fun PlantDetailContent(plant: Plant) {
+    Surface {
+        Column(Modifier.padding(dimensionResource(R.dimen.margin_normal))) {
+            PlantName(plant.name)
+            PlantWatering(plant.wateringInterval)
+            PlantDescription(plant.description)
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PlantDetailContentPreview() {
+    val plant = Plant("id", "Apple", "HTML<br><br>description", 3, 30, "")
+    MaterialTheme {
+        PlantDetailContent(plant)
+    }
+}
+
+
+@Preview
+@Composable
+private fun PlantDescriptionPreview() {
+    MaterialTheme {
+        PlantDescription("HTML<br><br>description")
+    }
+}
+
+
+@Preview
+@Composable
+private fun PlantWateringPreview() {
+    MaterialTheme {
+        PlantWatering(7)
+    }
+}
+
+
+@Preview
+@Composable
+private fun PlantDetailContentPreview() {
+    val plant = Plant("id", "Apple", "description", 3, 30, "")
+    MaterialTheme {
+        PlantDetailContent(plant)
+    }
+}
+
+
+@Preview
+@Composable
+private fun PlantNamePreview() {
+    MaterialTheme {
+        PlantName("Apple")
+    }
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun PlantDetailContentDarkPreview() {
+    val plant = Plant("id", "Apple", "HTML<br><br>description", 3, 30, "")
+    MdcTheme {
+        PlantDetailContent(plant)
     }
 }
