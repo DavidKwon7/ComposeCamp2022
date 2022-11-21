@@ -28,8 +28,28 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AnimationCodelabTheme {
-                Home()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colors.background
+                ) {
+                    Home()
+                }
             }
+        }
+    }
+}
+@Preview(
+    showBackground = true,
+    backgroundColor = 0xFFF0EAE2
+)
+@Composable
+fun ScreenContentPreview() {
+    AnimationCodelabTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colors.background
+        ) {
+            Home()
         }
     }
 }
