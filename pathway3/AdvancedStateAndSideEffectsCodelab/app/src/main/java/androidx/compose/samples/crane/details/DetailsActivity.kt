@@ -108,14 +108,31 @@ fun DetailsScreen(
     modifier: Modifier = Modifier,
     viewModel: DetailsViewModel = viewModel()
 ) {
-    // TODO Codelab: produceState step - Show loading screen while fetching city details
-    val cityDetails = remember(viewModel) { viewModel.cityDetails }
-    if (cityDetails is Result.Success<ExploreModel>) {
-        DetailsContent(cityDetails.data, modifier.fillMaxSize())
-    } else {
-        onErrorLoading()
+    val uiState by produceState(initialValue = DetailsUiState(isLoading = true)) {
+        val cityDetailsResult = viewModel.cityDetails
+        value = if (cityDetailsResult is Result.Success<ExploreModel>) {
+            DetailsUiState(cityDetailsResult.data)
+        } else {
+            DetailsUiState(throwError = true)
+        }
+    }
+
+    when {
+        uiState.cityDetails != null -> {
+            DetailsContent(uiState.cityDetails!!, modifier.fillMaxSize())
+        }
+        uiState.isLoading -> {
+            Box(modifier.fillMaxSize()) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colors.onSurface,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+        else -> { onErrorLoading() }
     }
 }
+
 
 @Composable
 fun DetailsContent(
@@ -150,6 +167,44 @@ private fun CityMapView(latitude: String, longitude: String) {
     val mapView = rememberMapViewWithLifecycle()
     MapViewContainer(mapView, latitude, longitude)
 }
+
+private fun getMapLifecycleObserver(mapView: MapView): LifecycleEventObserver =
+    LifecycleEventObserver { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_CREATE -> mapView.onCreate(Bundle())
+            Lifecycle.Event.ON_START -> mapView.onStart()
+            Lifecycle.Event.ON_RESUME -> mapView.onResume()
+            Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+            Lifecycle.Event.ON_STOP -> mapView.onStop()
+            Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+            else -> throw IllegalStateException()
+        }
+    }
+
+
+@Composable
+fun rememberMapViewWithLifecycle(): MapView {
+    val context = LocalContext.current
+    val mapView = remember {
+        MapView(context).apply {
+            id = R.id.map
+        }
+    }
+
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(key1 = lifecycle, key2 = mapView) {
+        // Make MapView follow the current lifecycle
+        val lifecycleObserver = getMapLifecycleObserver(mapView)
+        lifecycle.addObserver(lifecycleObserver)
+        onDispose {
+            lifecycle.removeObserver(lifecycleObserver)
+        }
+    }
+
+    return mapView
+}
+
+
 
 @Composable
 private fun MapViewContainer(
@@ -214,3 +269,9 @@ private fun ZoomButton(text: String, onClick: () -> Unit) {
 private const val InitialZoom = 5f
 const val MinZoom = 2f
 const val MaxZoom = 20f
+
+data class DetailsUiState(
+    val cityDetails: ExploreModel? = null,
+    val isLoading: Boolean = false,
+    val throwError: Boolean = false
+)
